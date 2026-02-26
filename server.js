@@ -14,6 +14,7 @@ app.post("/start", async (req, res) => {
   }
 
   const urls = req.body.urls;
+
   currentJob = {
     running: true,
     processed: 0,
@@ -38,8 +39,9 @@ app.post("/stop", (req, res) => {
 
 async function processUrls(urls) {
   const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    executablePath: process.env.CHROME_BIN || "/usr/bin/chromium",
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless: true
   });
 
   const concurrency = 3;
@@ -56,7 +58,9 @@ async function processUrls(urls) {
 
         const email = await page.evaluate(() => {
           const text = document.body.innerText;
-          const match = text.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i);
+          const match = text.match(
+            /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i
+          );
           return match ? match[0] : null;
         });
 
