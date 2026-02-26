@@ -3,8 +3,20 @@ import puppeteer from "puppeteer-core";
 import cors from "cors";
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
+
+/* =========================
+   ROOT ROUTE (VERY IMPORTANT)
+========================= */
+app.get("/", (req, res) => {
+  res.send("Mail backend is live 🚀");
+});
+
+/* =========================
+   JOB MANAGEMENT
+========================= */
 
 let currentJob = null;
 
@@ -14,6 +26,10 @@ app.post("/start", async (req, res) => {
   }
 
   const urls = req.body.urls;
+
+  if (!urls || !Array.isArray(urls)) {
+    return res.status(400).json({ error: "Invalid URLs array" });
+  }
 
   currentJob = {
     running: true,
@@ -28,14 +44,22 @@ app.post("/start", async (req, res) => {
 });
 
 app.get("/status", (req, res) => {
-  if (!currentJob) return res.json({ message: "No job" });
+  if (!currentJob) {
+    return res.json({ message: "No job" });
+  }
   res.json(currentJob);
 });
 
 app.post("/stop", (req, res) => {
-  if (currentJob) currentJob.running = false;
+  if (currentJob) {
+    currentJob.running = false;
+  }
   res.json({ message: "Stopped" });
 });
+
+/* =========================
+   SCRAPER LOGIC
+========================= */
 
 async function processUrls(urls) {
   const browser = await puppeteer.launch({
@@ -54,7 +78,10 @@ async function processUrls(urls) {
       const url = queue.shift();
 
       try {
-        await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
+        await page.goto(url, {
+          waitUntil: "networkidle2",
+          timeout: 30000
+        });
 
         const email = await page.evaluate(() => {
           const text = document.body.innerText;
@@ -90,7 +117,11 @@ async function processUrls(urls) {
   currentJob.running = false;
 }
 
-const PORT = process.env.PORT || 3000;
+/* =========================
+   SERVER START
+========================= */
+
+const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
